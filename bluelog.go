@@ -33,5 +33,6 @@ func InitLog(filename string) (*os.File, error) {
 	}
 	mutiWriter := io.MultiWriter(fileLog, os.Stdout)
 	log.SetOutput(mutiWriter)
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	return fileLog, nil
 }
