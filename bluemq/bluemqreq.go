@@ -13,14 +13,16 @@ type BMqReq struct {
 	_socket    zmq4.Socket
 	_exitChan  chan struct{}
 	_waitGroup *sync.WaitGroup
+	_reqChan   chan zmq4.Msg
 }
 
 // NewReq ...
-func NewReq() *BMqReq {
+func NewReq(queueSize int) *BMqReq {
 	return &BMqReq{
 		_socket:    zmq4.NewReq(context.Background()),
-		_exitChan:  make(chan struct{}), // exit channel
-		_waitGroup: &sync.WaitGroup{},   // goroutine wait greoup
+		_exitChan:  make(chan struct{}),            // exit channel
+		_waitGroup: &sync.WaitGroup{},              // goroutine wait greoup
+		_reqChan:   make(chan zmq4.Msg, queueSize), // subscribed messagegs
 	}
 }
 
@@ -32,6 +34,7 @@ func (req *BMqReq) Close() {
 // Stop ..
 func (req *BMqReq) Stop() {
 	close(req._exitChan)
+	req._waitGroup.Wait()
 }
 
 // Start ...( "tcp://localhost:5559")
@@ -79,6 +82,13 @@ func (req *BMqReq) tick() {
 			continue
 		}
 
-		log.Println("recv->", string(msg.Frames[0]))
+		req._reqChan <- msg
+
+		//log.Println("recv->", string(msg.Frames[0]))
 	}
+}
+
+// ReqChan ...
+func (req *BMqReq) ReqChan() chan zmq4.Msg {
+	return req._reqChan
 }

@@ -50,8 +50,8 @@ func NewServer(pubAddr, repAddr string, pubSubKey string) *BLLevelDBServer {
 		_pubAddr:   pubAddr,
 		_repAddr:   repAddr,
 		_pubSubKey: pubSubKey,
-		_repServer: bluemq.NewRep(),
-		_pubServer: bluemq.NewPub(),
+		_repServer: bluemq.NewRep(100),
+		_pubServer: bluemq.NewPub(100),
 		_dataDB:    dataDB,
 		_logDB:     logDB,
 		_exitChan:  make(chan struct{}), // exit channel
@@ -62,33 +62,19 @@ func NewServer(pubAddr, repAddr string, pubSubKey string) *BLLevelDBServer {
 // StartServer ...
 func (s *BLLevelDBServer) StartServer() {
 	// start zmq publish server for replication
-	now := time.Now()
-	for {
-		if time.Now().After(now.Add(time.Second * 10)) {
-			log.Println("timeout publish server listen")
-			return
-		}
-
-		if err := s._pubServer.Start(s._pubAddr); err == nil {
-			break
-		}
+	if err := s._pubServer.Start(s._pubAddr); err != nil {
+		log.Println(err)
+		return
 	}
 
 	// start zmq response server for request save
-	now = time.Now()
-	for {
-		if time.Now().After(now.Add(time.Second * 10)) {
-			log.Println("timeout response server listen")
-			return
-		}
-
-		if err := s._repServer.Start(s._repAddr); err == nil {
-			break
-		}
+	if err := s._repServer.Start(s._repAddr); err != nil {
+		log.Println(err)
+		return
 	}
 
 	// start job tick leveldb for log
-	go s._logDB.StartLevelDBJob(1)
+	s._logDB.StartLevelDBJob(1)
 
 	// rep msg job tick
 	s._waitGroup.Add(1)
@@ -100,6 +86,7 @@ func (s *BLLevelDBServer) StopServer() {
 	s._pubServer.Stop()
 	s._logDB.StopLevelDBJob()
 	close(s._exitChan)
+	s._waitGroup.Wait()
 }
 
 // SendData ...
@@ -133,7 +120,8 @@ func (s *BLLevelDBServer) SendData(key, value []byte) error {
 	}
 
 	// pub msg for replication
-	return s._pubServer.Send(s._pubSubKey, string(data))
+	s._pubServer.Send(s._pubSubKey, string(data))
+	return nil
 }
 
 // generator time key for leveldb dir name

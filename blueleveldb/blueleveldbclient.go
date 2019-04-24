@@ -31,7 +31,7 @@ func NewClient(addr, key string) *BLLevelDBClient {
 	return &BLLevelDBClient{
 		_addr:      addr,
 		_key:       key,
-		_sub:       bluemq.NewSub(),
+		_sub:       bluemq.NewSub(100),
 		_exitChan:  make(chan struct{}), // exit channel
 		_waitGroup: &sync.WaitGroup{},   // goroutine wait group
 		_db:        db,

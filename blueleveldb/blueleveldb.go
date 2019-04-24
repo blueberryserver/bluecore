@@ -70,12 +70,12 @@ func (db *BLLevelDB) StartLevelDBJob(pool int) {
 		db._waitGroup.Add(1)
 		go db.tick(i)
 	}
-	db._waitGroup.Wait()
 }
 
 // StopLevelDBJob ..
 func (db *BLLevelDB) StopLevelDBJob() {
 	close(db._exitChan)
+	db._waitGroup.Wait()
 }
 
 // AddLevelDBJob ...

@@ -2,8 +2,10 @@ package bluemq
 
 import (
 	"context"
+	"errors"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/go-zeromq/zmq4"
 )
@@ -17,12 +19,12 @@ type BMqRep struct {
 }
 
 // NewRep ...
-func NewRep() *BMqRep {
+func NewRep(queueSize int) *BMqRep {
 	return &BMqRep{
 		_socket:    zmq4.NewRep(context.Background()),
-		_exitChan:  make(chan struct{}),     // exit channel
-		_waitGroup: &sync.WaitGroup{},       // goroutine wait greoup
-		_repChan:   make(chan zmq4.Msg, 10), // subscribed messagegs
+		_exitChan:  make(chan struct{}),            // exit channel
+		_waitGroup: &sync.WaitGroup{},              // goroutine wait greoup
+		_repChan:   make(chan zmq4.Msg, queueSize), // subscribed messagegs
 	}
 }
 
@@ -34,14 +36,23 @@ func (rep *BMqRep) Close() {
 // Stop ..
 func (rep *BMqRep) Stop() {
 	close(rep._exitChan)
+	rep._waitGroup.Wait()
 }
 
 // Start ...( "tcp://*:5559")
 func (rep *BMqRep) Start(addr string) error {
-	if err := rep._socket.Listen(addr); err != nil {
-		log.Println(err)
-		return err
+
+	for {
+		if err := rep._socket.Listen(addr); err == nil {
+			break
+		}
+
+		select {
+		case <-time.After(10 * time.Second):
+			return errors.New("Socket Listen Timeout")
+		}
 	}
+
 	rep._waitGroup.Add(1)
 	go rep.tick()
 	return nil
@@ -83,9 +94,8 @@ func (rep *BMqRep) tick() {
 		}
 		rep._repChan <- msg
 
-		log.Println("recv->", string(msg.Frames[0]))
-
-		rep.Send("OK")
+		//log.Println("recv->", string(msg.Frames[0]))
+		//rep.Send("OK")
 	}
 }
 

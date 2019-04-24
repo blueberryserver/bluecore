@@ -17,12 +17,12 @@ type BMqSub struct {
 }
 
 // NewSub ...
-func NewSub() *BMqSub {
+func NewSub(queueSize int) *BMqSub {
 	return &BMqSub{
 		_socket:    zmq4.NewSub(context.Background()),
-		_exitChan:  make(chan struct{}),     // exit channel
-		_waitGroup: &sync.WaitGroup{},       // goroutine wait group
-		_subChan:   make(chan zmq4.Msg, 10), // subscribed messagegs
+		_exitChan:  make(chan struct{}),            // exit channel
+		_waitGroup: &sync.WaitGroup{},              // goroutine wait group
+		_subChan:   make(chan zmq4.Msg, queueSize), // subscribed messagegs
 	}
 }
 
@@ -51,6 +51,7 @@ func (sub *BMqSub) Start(addr string, key string) error {
 // Stop ...
 func (sub *BMqSub) Stop() {
 	close(sub._exitChan)
+	sub._waitGroup.Wait()
 }
 
 func (sub *BMqSub) tick() {
