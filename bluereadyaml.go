@@ -3,7 +3,6 @@ package bluecore
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"strings"
 
 	yaml "gopkg.in/yaml.v2"
@@ -39,26 +38,5 @@ func ReadYAML(v interface{}, filename string) error {
 		fmt.Println(err)
 		return err
 	}
-	return nil
-}
-
-// WriteYAML ...
-func WriteYAML(v interface{}, filename string) error {
-	result, err := yaml.Marshal(v)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-
-	f, err := os.Create(filename)
-	defer f.Close()
-	if err != nil {
-		return err
-	}
-	_, err = f.Write(result)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
