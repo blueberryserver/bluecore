@@ -21,7 +21,7 @@ func InitLog(filename string) (*os.File, error) {
 			path += filePathNameArry[i]
 			i++
 		}
-		err := bluecp.MKDIR(path, 0666)
+		err := bluecp.MKDIR(path, 0755)
 		if err != nil {
 			return nil, err
 		}
