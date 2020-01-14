@@ -1,7 +1,6 @@
 package bluenet
 
 import (
-	"encoding/binary"
 	"log"
 	"net"
 	"reflect"
@@ -165,22 +164,34 @@ func (client *NetClient) handlerLoop(session *Session) {
 }
 
 func (client *NetClient) excutePacket(session *Session, packet Packet) {
-	buff := packet.Serialize()
 
-	length := binary.BigEndian.Uint32(buff[:4])
-	msgID := binary.BigEndian.Uint32(buff[4:8])
-	body := buff[8:]
+	length := packet.GetLength()
+	msgID := packet.GetMSGId()
+	body := packet.GetBody()
+
+	log.Println("execute packet length: ", length)
+	log.Println("execute packet msgid: ", msgID)
 
 	handler := client._handler[msgID].(Message)
-
-	if handler != nil {
-		handler.Execute(session, body, length-8)
+	if handler == nil {
+		t := reflect.ValueOf(client).Type()
+		log.Println(t, " handler not found")
+		return
 	}
+
+	handler.Execute(session, body, length-4)
 }
 
 // SendMsg ...
 func (client *NetClient) SendMsg(msgID uint32, body []byte, length uint32) (err error) {
-	return client._session.SendMsg(msgID, body, length)
+	packet, err := client._protocol.WritePacket(length, msgID, body)
+	if err != nil {
+		t := reflect.ValueOf(client).Type()
+		log.Println(t, "Recv err: ", err)
+		return
+	}
+
+	return client._session.SendPacket(packet)
 }
 
 // Close ...

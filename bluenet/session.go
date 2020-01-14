@@ -1,7 +1,6 @@
 package bluenet
 
 import (
-	"encoding/binary"
 	"errors"
 	"net"
 	"sync"
@@ -62,8 +61,8 @@ func (session *Session) IsClosed() bool {
 	return atomic.LoadInt32(&session._closed) == 1
 }
 
-// sendPacket ...
-func (session *Session) sendPacket(packet Packet) (err error) {
+// SendPacket ...
+func (session *Session) SendPacket(packet Packet) (err error) {
 
 	if session.IsClosed() {
 		return errors.New("use of closed network connection")
@@ -88,14 +87,14 @@ func (session *Session) sendPacket(packet Packet) (err error) {
 }
 
 // SendMsg ...
-func (session *Session) SendMsg(msgID uint32, body []byte, length uint32) (err error) {
-	length += 4 + 4
-	var buff = make([]byte, length)
+// func (session *Session) SendMsg(msgID uint32, body []byte, length uint32) (err error) {
+// 	length += 4 + 4
+// 	var buff = make([]byte, length)
 
-	binary.BigEndian.PutUint32(buff[0:], length)
-	binary.BigEndian.PutUint32(buff[4:], msgID)
-	copy(buff[8:], body)
+// 	binary.BigEndian.PutUint32(buff[0:], length)
+// 	binary.BigEndian.PutUint32(buff[4:], msgID)
+// 	copy(buff[8:], body)
 
-	packet := NewBluePacket(buff)
-	return session.sendPacket(packet)
-}
+// 	packet := NewBluePacket(buff)
+// 	return session.sendPacket(packet)
+// }

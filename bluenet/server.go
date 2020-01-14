@@ -1,7 +1,6 @@
 package bluenet
 
 import (
-	"encoding/binary"
 	"log"
 	"net"
 	"reflect"
@@ -143,7 +142,7 @@ func (server *NetServer) handlerConnect(session *Session) {
 func (server *NetServer) handlerRecv(session *Session) {
 	//log.Println("Recv id: ", session._id)
 	defer func() {
-		//log.Println("def Recv")
+		log.Println("def Recv")
 		recover()
 		session.Close()
 		server.removeSession(session)
@@ -166,10 +165,9 @@ func (server *NetServer) handlerRecv(session *Session) {
 		if err != nil {
 			t := reflect.ValueOf(server).Type()
 			log.Println(t, " err: ", err)
-			return
 		}
 
-		//log.Println("Recv chan <- packet")
+		log.Println("Recv chan <- packet")
 		session._recvPacketChan <- packet
 	}
 }
@@ -177,7 +175,7 @@ func (server *NetServer) handlerRecv(session *Session) {
 func (server *NetServer) handlerSend(session *Session) {
 	//log.Println("Send id: ", session._id)
 	defer func() {
-		//log.Println("def Send")
+		log.Println("def Send")
 		recover()
 		session.Close()
 		server.removeSession(session)
@@ -212,7 +210,7 @@ func (server *NetServer) handlerSend(session *Session) {
 func (server *NetServer) handlerLoop(session *Session) {
 	//log.Println("Loop id: ", session._id)
 	defer func() {
-		//log.Println("def Loop")
+		log.Println("def Loop")
 		recover()
 		session.Close()
 		server.removeSession(session)
@@ -231,7 +229,7 @@ func (server *NetServer) handlerLoop(session *Session) {
 
 		case packet := <-session._recvPacketChan:
 			if session.IsClosed() {
-				log.Println("Loop closed sicket id: ", session._id)
+				log.Println("Loop closed socket id: ", session._id)
 				return
 			}
 
@@ -242,11 +240,14 @@ func (server *NetServer) handlerLoop(session *Session) {
 }
 
 func (server *NetServer) excutePacket(session *Session, packet Packet) {
-	buff := packet.Serialize()
+	log.Println("execute packet id: ", session._id)
 
-	length := binary.BigEndian.Uint32(buff[:4])
-	msgID := binary.BigEndian.Uint32(buff[4:8])
-	body := buff[8:]
+	length := packet.GetLength()
+	msgID := packet.GetMSGId()
+	body := packet.GetBody()
+
+	log.Println("execute packet length: ", length)
+	log.Println("execute packet msgid: ", msgID)
 
 	handler := server._handler[msgID].(Message)
 	if handler == nil {
@@ -255,5 +256,5 @@ func (server *NetServer) excutePacket(session *Session, packet Packet) {
 		return
 	}
 
-	handler.Execute(session, body, length-8)
+	handler.Execute(session, body, length-4)
 }

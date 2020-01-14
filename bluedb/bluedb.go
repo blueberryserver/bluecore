@@ -20,6 +20,26 @@ type BDB struct {
 // NewOpen ...
 func NewOpen(user, pw, host string, port int, database string) (*BDB, error) {
 	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", user, pw, host, port, database))
+	db.SetMaxIdleConns(10)
+	db.SetMaxOpenConns(20)
+	
+	if err != nil {
+		return nil, err
+	}
+	return &BDB{
+		_db:        db,
+		_exitChan:  make(chan struct{}), // exit channel
+		_dbJobChan: make(chan interface{}, 10),
+		_waitGroup: &sync.WaitGroup{}, // goroutine wait greoup
+	}, nil
+}
+
+// NewOpen ...
+func NewOpenEx(user, pw, host string, port int, database string, maxidle int maxopen int) (*BDB, error) {
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", user, pw, host, port, database))
+	db.SetMaxIdleConns(maxidle)
+	db.SetMaxOpenConns(maxopen)
+	
 	if err != nil {
 		return nil, err
 	}
